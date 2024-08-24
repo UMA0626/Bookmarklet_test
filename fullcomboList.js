@@ -44,14 +44,18 @@ async function whatever(url) {
   console.log("load url : " + url)
   let domparser = new DOMParser();
   // スコア情報テーブルを探す
-  let tables = await fetch(url)
+  const htmltext = await fetch(url)
     .then(resToText)
     .then((text) => domparser.parseFromString(text, "text/html"))
-    .then((doc) => doc.querySelectorAll(".mu_list_table"))
+  const tables = htmltext.querySelectorAll(".mu_list_table")
 
   if (tables.length != 1) {
     console.log("table not found : " + url)
     document.body.innerHTML += "<br>プレイデータ読み込み時にエラーが発生しました";
+    if (tables.length == 0) {
+      const isMaintenance = htmltext.querySelectorAll("#id_ea_common_content > div > div > div > span:nth-child(1)")[0]?.innerText.includes("メンテナンス") ?? false
+      if (isMaintenance) document.body.innerHTML += "<br>現在メンテナンス中です。";
+    }
     return
   }
   let tableRows = tables[0].querySelectorAll("li")
@@ -74,7 +78,7 @@ async function wapper(lv) {
   // Lv40~50の、レベルごとのページリスト。曲が増えてページ数が増えた場合に書き換えが必要
   // TODO: 最大ページ番号の自動取得
   const sizelist = [14, 14, 14, 12, 12, 14, 14, 11, 10, 6, 2];
-  const size = sizelist[lv-40];
+  const size = sizelist[lv - 40];
   let pagelist = Array.from({ length: size }, (_, i) => [i, lv]);
 
   const promises = pagelist.map(([page, level]) =>
@@ -85,9 +89,9 @@ async function wapper(lv) {
 
   // Lv50 特別処理。ポパクロ通常版とUPPERの区別がつかないので、力技で書き換え。先に取得したほうが通常版。
   // TODO: おそらく、将来的に通常版とUPPERの間にページ区切りが入った場合にうまく動かなくなる。正式な対応が必要。
-  if (lv == 50){
+  if (lv == 50) {
     for (let i = 0; i < s.length; i++) {
-      if(s[i]["song"] == "Popperz Chronicle"){
+      if (s[i]["song"] == "Popperz Chronicle") {
         s[i]["song"] = "Popperz Chronicle A"
         break
       }
@@ -105,17 +109,17 @@ async function loadCSVData(filepath) {
 }
 
 // 結果用メダル画像を読み込む (動作モードによってメダル画像の種類を変えている)
-function loadMedals(mode){
+function loadMedals(mode) {
   let iconbasename = "icon"
-  if (mode == M_CLEAR){
+  if (mode == M_CLEAR) {
     iconbasename = "c_icon"
   }
-  async function load(id){
-      let src = GITHUB_URL + "/" + iconbasename + "/c_" + id + ".png";
-      const img = new Image()
-      img.src = src
-      await img.decode()
-      return img
+  async function load(id) {
+    let src = GITHUB_URL + "/" + iconbasename + "/c_" + id + ".png";
+    const img = new Image()
+    img.src = src
+    await img.decode()
+    return img
   }
   let list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
   return Promise.all(list.map(id => load(id)))
@@ -124,7 +128,7 @@ function loadMedals(mode){
 function drawIcons(ctx, data, mlist, icon, x, y, dx, dy, iconsize) {
   console.log("draw icons")
   for (let d of data) {
-    if (d["medal"] == ERROR_MEDAL_ID){
+    if (d["medal"] == ERROR_MEDAL_ID) {
       continue;
     }
     // 表データ内から曲を探す。もっといい方法がありそうだけど、せいぜい数百件のデータなので性能問題は無いでしょう
@@ -220,8 +224,8 @@ async function main(lv, mode) {
   document.body.innerHTML = "";
   document.body.appendChild(b);
   document.body.appendChild(document.createElement('br'));
-  if(c1)document.body.appendChild(c1);
-  if(c2)document.body.appendChild(c2);
+  if (c1) document.body.appendChild(c1);
+  if (c2) document.body.appendChild(c2);
 }
 
 // 現在表示できるリストの一覧を表示して選択してもらうためのページ部品。
@@ -241,7 +245,7 @@ async function allpage_sub(mode, title, minlv, maxlv) {
     // 機能ボタン
     let b = document.createElement('button');
     b.textContent = "Lv" + i;
-    b.addEventListener('click', async ()=> {await main(i, mode)});
+    b.addEventListener('click', async () => { await main(i, mode) });
     // ボタン更新日 (仮)
     // let p = document.createElement('p');
     // p.textContent = "yyyy/mm/dd更新"
@@ -287,16 +291,16 @@ async function allpage() {
 // mode 0 = 機能一覧表示
 // mode 1 = フルコン難易度 (デフォルト)
 // mode 2 = クリア難易度
-export default async (lv, mode=1) => {
+export default async (lv, mode = 1) => {
   // 初回アクセス時のみ、cssを取り込む
   document.body.innerHTML = "";
   document.head.innerHTML = "";
   await loadCSS(GITHUB_URL + "/css/normalize.css");
   await loadCSS(GITHUB_URL + "/css/style.css");
 
-  if (mode == M_ALL){
+  if (mode == M_ALL) {
     allpage();
-  }else{
+  } else {
     main(lv, mode);
   }
   // TODO: README修正。
